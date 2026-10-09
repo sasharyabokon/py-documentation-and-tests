@@ -241,3 +241,32 @@ class MovieViewSetTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
+
+    def test_create_movie(self) -> None:
+        admin_user = get_user_model().objects.create_user(
+            email="admin@gmail.com",
+            password="testpassword123",
+            is_staff=True
+        )
+        self.client.force_authenticate(admin_user)
+
+        genre = Genre.objects.create(name="Action")
+        actor = Actor.objects.create(first_name="Keanu", last_name="Reeves")
+
+        payload = {
+            "title": "Test Movie",
+            "description": "Test description",
+            "duration": 150,
+            "genres": [genre.id],
+            "actors": [actor.id],
+        }
+        res = self.client.post(MOVIE_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        movie = Movie.objects.get(id=res.data["id"])
+
+        self.assertEqual(payload["title"], movie.title)
+        self.assertEqual(payload["duration"], movie.duration)
+
+        self.assertIn(genre, movie.genres.all())
+        self.assertIn(actor, movie.actors.all())
